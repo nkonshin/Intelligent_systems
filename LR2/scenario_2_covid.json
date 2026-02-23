@@ -1,0 +1,39 @@
+{
+  "description": "Сценарий #2: Подозрение на COVID-19",
+  "expected_results": {
+    "diagnosis": "Подозрение на COVID-19",
+    "rules_fired": ["R003"]
+  },
+  "facts": [
+    {
+      "type": "Patient",
+      "age": 35,
+      "chronic_diseases": false
+    },
+    {
+      "type": "Symptom",
+      "name": "температура",
+      "value": 38.1
+    },
+    {
+      "type": "Symptom",
+      "name": "потеря_обоняния",
+      "value": true
+    },
+    {
+      "type": "Symptom",
+      "name": "потеря_вкуса",
+      "value": true
+    },
+    {
+      "type": "Symptom",
+      "name": "кашель",
+      "value": "сухой"
+    },
+    {
+      "type": "Symptom",
+      "name": "слабость",
+      "value": "умеренная"
+    }
+  ]
+}

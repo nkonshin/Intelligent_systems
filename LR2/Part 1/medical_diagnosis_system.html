@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Экспертная система диагностики простудных заболеваний</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 40px;
+            font-size: 1.2em;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #718096;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .diagram-container {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .diagram-title {
+            font-size: 1.5em;
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        /* Архитектура */
+        .architecture-box {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .architecture-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+        
+        .architecture-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .architecture-box p {
+            color: #4a5568;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+        
+        .arrow {
+            text-align: center;
+            color: #667eea;
+            font-size: 2em;
+            margin: 10px 0;
+        }
+        
+        /* Онтология */
+        .ontology-tree {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+        }
+        
+        .tree-node {
+            margin: 5px 0;
+            color: #2d3748;
+        }
+        
+        .level-0 { color: #e53e3e; font-weight: bold; font-size: 1.1em; }
+        .level-1 { color: #dd6b20; margin-left: 20px; font-weight: 600; }
+        .level-2 { color: #d69e2e; margin-left: 40px; }
+        .level-3 { color: #38a169; margin-left: 60px; }
+        
+        /* Правила */
+        .rule-card {
+            background: white;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .rule-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .rule-id {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .confidence {
+            background: #48bb78;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        
+        .rule-title {
+            color: #2d3748;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .rule-section {
+            margin: 10px 0;
+        }
+        
+        .rule-label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 5px;
+        }
+        
+        .rule-content {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 5px;
+            color: #2d3748;
+        }
+        
+        .recommendation {
+            background: #e6fffa;
+            border-left: 4px solid #38b2ac;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        /* Процесс диагностики */
+        .process-step {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            position: relative;
+        }
+        
+        .step-number {
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .step-title {
+            margin-left: 50px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .step-description {
+            margin-top: 10px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        /* Связи между классами */
+        .relations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .relation-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .relation-name {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .relation-arrow {
+            color: #a0aec0;
+            font-size: 1.5em;
+            margin: 5px 0;
+        }
+        
+        .class-name {
+            background: #f7fafc;
+            padding: 8px;
+            border-radius: 5px;
+            color: #2d3748;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Экспертная система</h1>
+        <div class="subtitle">Диагностика простудных заболеваний</div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('architecture')">Архитектура</button>
+            <button class="tab" onclick="showTab('ontology')">Онтология</button>
+            <button class="tab" onclick="showTab('rules')">Правила</button>
+            <button class="tab" onclick="showTab('process')">Процесс диагностики</button>
+            <button class="tab" onclick="showTab('relations')">Связи</button>
+        </div>
+        
+        <!-- АРХИТЕКТУРА -->
+        <div id="architecture" class="tab-content active">
+            <div class="diagram-container">
+                <div class="diagram-title">Архитектура экспертной системы</div>
+                
+                <div class="architecture-box">
+                    <h3>👤 Пользовательский интерфейс</h3>
+                    <p>Ввод симптомов, просмотр результатов диагностики и рекомендаций</p>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="architecture-box">
+                    <h3>🧠 Машина вывода (Inference Engine)</h3>
+                    <p>Прямой и обратный вывод, обработка правил, вычисление факторов уверенности</p>
+                </div>
+                
+                <div class="arrow">↔️</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="architecture-box">
+                        <h3>📚 База знаний</h3>
+                        <p>Онтология заболеваний, симптомов, правила диагностики (12 правил)</p>
+                    </div>
+                    
+                    <div class="architecture-box">
+                        <h3>💾 Рабочая память</h3>
+                        <p>Текущие данные пациента, активированные правила, промежуточные выводы</p>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="architecture-box">
+                    <h3>📊 Модуль объяснений</h3>
+                    <p>Объяснение хода рассуждений, обоснование диагноза, визуализация цепочки правил</p>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="architecture-box">
+                    <h3>📋 Модуль рекомендаций</h3>
+                    <p>Формирование плана лечения, выдача рекомендаций, определение необходимости обращения к врачу</p>
+                </div>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">Потоки данных</div>
+                <div style="background: white; padding: 20px; border-radius: 10px;">
+                    <p style="margin: 10px 0;"><strong style="color: #667eea;">1. Ввод данных:</strong> Пользователь вводит симптомы (температура, кашель, насморк и т.д.)</p>
+                    <p style="margin: 10px 0;"><strong style="color: #667eea;">2. Обработка:</strong> Машина вывода анализирует симптомы через правила из базы знаний</p>
+                    <p style="margin: 10px 0;"><strong style="color: #667eea;">3. Вывод:</strong> Система определяет наиболее вероятный диагноз с фактором уверенности</p>
+                    <p style="margin: 10px 0;"><strong style="color: #667eea;">4. Объяснение:</strong> Система показывает, какие правила были активированы</p>
+                    <p style="margin: 10px 0;"><strong style="color: #667eea;">5. Рекомендации:</strong> Система выдает план лечения и рекомендации</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ОНТОЛОГИЯ -->
+        <div id="ontology" class="tab-content">
+            <div class="diagram-container">
+                <div class="diagram-title">Иерархия классов онтологии</div>
+                
+                <div class="ontology-tree">
+                    <div class="tree-node level-0">🦠 Заболевания</div>
+                    <div class="tree-node level-1">├─ Вирусные_инфекции</div>
+                    <div class="tree-node level-2">│  ├─ Грипп</div>
+                    <div class="tree-node level-3">│  │  ├─ Грипп_типа_A</div>
+                    <div class="tree-node level-3">│  │  └─ Грипп_типа_B</div>
+                    <div class="tree-node level-2">│  ├─ ОРВИ</div>
+                    <div class="tree-node level-2">│  └─ COVID-19</div>
+                    <div class="tree-node level-1">├─ Бактериальные_инфекции</div>
+                    <div class="tree-node level-2">│  ├─ Ангина</div>
+                    <div class="tree-node level-2">│  └─ Бронхит</div>
+                    <div class="tree-node level-1">└─ Осложнения</div>
+                    <div class="tree-node level-2">   ├─ Пневмония</div>
+                    <div class="tree-node level-2">   └─ Синусит</div>
+                    
+                    <br>
+                    
+                    <div class="tree-node level-0">🌡️ Симптомы</div>
+                    <div class="tree-node level-1">├─ Респираторные</div>
+                    <div class="tree-node level-2">│  ├─ Кашель (сухой/влажный)</div>
+                    <div class="tree-node level-2">│  ├─ Насморк</div>
+                    <div class="tree-node level-2">│  ├─ Боль_в_горле</div>
+                    <div class="tree-node level-2">│  └─ Одышка</div>
+                    <div class="tree-node level-1">├─ Общие</div>
+                    <div class="tree-node level-2">│  ├─ Температура</div>
+                    <div class="tree-node level-2">│  ├─ Слабость</div>
+                    <div class="tree-node level-2">│  ├─ Головная_боль</div>
+                    <div class="tree-node level-2">│  └─ Боль_в_мышцах</div>
+                    <div class="tree-node level-1">└─ Специфические</div>
+                    <div class="tree-node level-2">   ├─ Потеря_обоняния</div>
+                    <div class="tree-node level-2">   └─ Сыпь</div>
+                    
+                    <br>
+                    
+                    <div class="tree-node level-0">💊 Лечение</div>
+                    <div class="tree-node level-1">├─ Медикаментозное</div>
+                    <div class="tree-node level-2">│  ├─ Противовирусные</div>
+                    <div class="tree-node level-2">│  ├─ Антибиотики</div>
+                    <div class="tree-node level-2">│  ├─ Жаропонижающие</div>
+                    <div class="tree-node level-2">│  └─ Симптоматические</div>
+                    <div class="tree-node level-1">└─ Немедикаментозное</div>
+                    <div class="tree-node level-2">   ├─ Покой</div>
+                    <div class="tree-node level-2">   ├─ Обильное_питье</div>
+                    <div class="tree-node level-2">   └─ Увлажнение_воздуха</div>
+                    
+                    <br>
+                    
+                    <div class="tree-node level-0">👥 Пациент</div>
+                    <div class="tree-node level-1">├─ Взрослый</div>
+                    <div class="tree-node level-2">│  ├─ Молодой (18-40)</div>
+                    <div class="tree-node level-2">│  └─ Пожилой (60+)</div>
+                    <div class="tree-node level-1">└─ Ребенок</div>
+                    <div class="tree-node level-2">   ├─ Младенец (0-3)</div>
+                    <div class="tree-node level-2">   └─ Школьник (7-17)</div>
+                </div>
+            </div>
+            
+            <div class="diagram-container">
+                <div class="diagram-title">Атрибуты основных классов</div>
+                <div style="background: white; padding: 20px; border-radius: 10px;">
+                    <h4 style="color: #667eea; margin-bottom: 10px;">Заболевание:</h4>
+                    <ul style="margin-left: 20px; color: #2d3748;">
+                        <li>название: String</li>
+                        <li>код_МКБ: String</li>
+                        <li>инкубационный_период: Integer (дни)</li>
+                        <li>заразность: Boolean</li>
+                        <li>степень_тяжести: Enum (легкая, средняя, тяжелая)</li>
+                    </ul>
+                    
+                    <h4 style="color: #667eea; margin: 20px 0 10px 0;">Симптом:</h4>
+                    <ul style="margin-left: 20px; color: #2d3748;">
+                        <li>название: String</li>
+                        <li>интенсивность: Integer (1-10)</li>
+                        <li>длительность: Integer (дни)</li>
+                        <li>частота_проявления: Float (0-1)</li>
+                    </ul>
+                    
+                    <h4 style="color: #667eea; margin: 20px 0 10px 0;">Пациент:</h4>
+                    <ul style="margin-left: 20px; color: #2d3748;">
+                        <li>возраст: Integer</li>
+                        <li>наличие_хронических_заболеваний: Boolean</li>
+                        <li>температура_тела: Float</li>
+                        <li>иммунный_статус: Enum (слабый, нормальный, хороший)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ПРАВИЛА -->
+        <div id="rules" class="tab-content">
+            <div class="diagram-container">
+                <div class="diagram-title">База правил (12 правил)</div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R001</span>
+                        <span class="confidence">CF: 0.85</span>
+                    </div>
+                    <div class="rule-title">Определение гриппа типа A</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            температура > 38.5°C AND резкое_начало = TRUE AND ломота_в_мышцах = высокая AND головная_боль = сильная AND слабость = выраженная
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Грипп типа A"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Постельный режим, противовирусные препараты (осельтамивир), обильное питье, жаропонижающие при температуре >38.5°C
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R002</span>
+                        <span class="confidence">CF: 0.90</span>
+                    </div>
+                    <div class="rule-title">Определение обычной ОРВИ</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            температура = 37.5-38°C AND насморк = TRUE AND боль_в_горле = умеренная AND кашель = легкий AND постепенное_начало = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "ОРВИ"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Симптоматическое лечение, покой, теплое питье, промывание носа солевыми растворами
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R003</span>
+                        <span class="confidence">CF: 0.75</span>
+                    </div>
+                    <div class="rule-title">Выявление COVID-19</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            потеря_обоняния = TRUE OR потеря_вкуса = TRUE AND температура > 37.5°C AND (сухой_кашель = TRUE OR одышка = TRUE)
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Подозрение на COVID-19"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Срочно сдать ПЦР-тест, самоизоляция, мониторинг сатурации кислорода, при одышке - обращение к врачу
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R004</span>
+                        <span class="confidence">CF: 0.80</span>
+                    </div>
+                    <div class="rule-title">Определение бактериальной ангины</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            боль_в_горле = очень_сильная AND налет_на_миндалинах = TRUE AND увеличенные_лимфоузлы = TRUE AND температура > 38°C AND НЕТ насморка AND НЕТ кашля
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Ангина (бактериальная)"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Консультация врача, антибиотики (амоксициллин), полоскание горла антисептиками, жаропонижающие
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R005</span>
+                        <span class="confidence" style="background: #f56565;">CF: 0.70</span>
+                    </div>
+                    <div class="rule-title">⚠️ Выявление осложнения - пневмонии</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            длительность_заболевания > 7_дней AND температура > 38°C AND кашель_с_мокротой = TRUE AND боль_в_груди = TRUE AND одышка = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Риск пневмонии"</div>
+                    </div>
+                    <div class="recommendation" style="background: #fed7d7; border-color: #f56565;">
+                        <strong>🚨 Рекомендации:</strong> СРОЧНО обратиться к врачу, рентген грудной клетки, возможна госпитализация, антибиотикотерапия
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R006</span>
+                        <span class="confidence">CF: 0.95</span>
+                    </div>
+                    <div class="rule-title">Неосложненная простуда</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            температура < 37.5°C AND легкий_насморк = TRUE AND легкое_недомогание = TRUE AND НЕТ сильной_головной_боли
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Легкая простуда"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Домашнее лечение, витамин C (1000 мг/день), теплое питье, полноценный отдых
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R007</span>
+                        <span class="confidence">CF: 0.78</span>
+                    </div>
+                    <div class="rule-title">Определение острого бронхита</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            продуктивный_кашель = TRUE AND хрипы_в_легких = TRUE AND длительность_кашля > 5_дней AND температура = 37-38°C
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Острый бронхит"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Муколитики (АЦЦ, Амброксол), отхаркивающие средства, обильное теплое питье, при бактериальной природе - антибиотики
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R008</span>
+                        <span class="confidence" style="background: #ed8936;">CF: 0.88</span>
+                    </div>
+                    <div class="rule-title">⚠️ Высокий риск осложнений у пожилых</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            возраст > 65_лет AND (диагноз = "Грипп" OR диагноз = "ОРВИ") AND хронические_заболевания = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">риск_осложнений = "Высокий"</div>
+                    </div>
+                    <div class="recommendation" style="background: #feebc8; border-color: #ed8936;">
+                        <strong>⚠️ Рекомендации:</strong> Обязательная консультация врача, ежедневный мониторинг состояния, рассмотреть противовирусную терапию, контроль хронических заболеваний
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R009</span>
+                        <span class="confidence" style="background: #ed8936;">CF: 0.92</span>
+                    </div>
+                    <div class="rule-title">⚠️ Особенности течения у детей до 3 лет</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            возраст < 3_лет AND температура > 38.5°C AND отказ_от_еды = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">действие = "Требуется осмотр педиатра"</div>
+                    </div>
+                    <div class="recommendation" style="background: #feebc8; border-color: #ed8936;">
+                        <strong>⚠️ Рекомендации:</strong> Вызов педиатра на дом, контроль температуры каждые 2 часа, жаропонижающие по возрасту (парацетамол, ибупрофен), обильное питье
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R010</span>
+                        <span class="confidence">CF: 0.82</span>
+                    </div>
+                    <div class="rule-title">Выявление синусита как осложнения</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            насморк > 10_дней AND боль_в_области_пазух = TRUE AND гнойные_выделения = TRUE AND головная_боль_усиливается_при_наклоне = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">диагноз = "Синусит"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Консультация ЛОР-врача, антибиотики (амоксициллин+клавулановая кислота), сосудосуживающие капли (не более 5 дней), промывание пазух
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R011</span>
+                        <span class="confidence">CF: 0.75</span>
+                    </div>
+                    <div class="rule-title">Показания к антибиотикотерапии</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            (диагноз = "Ангина" OR диагноз = "Синусит" OR диагноз = "Бронхит") AND бактериальная_природа = вероятна AND длительность > 5_дней
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">лечение = "Антибиотики показаны"</div>
+                    </div>
+                    <div class="recommendation">
+                        <strong>💊 Рекомендации:</strong> Назначение антибиотиков ТОЛЬКО врачом (амоксициллин, азитромицин), полный курс 5-7 дней, пробиотики для защиты микрофлоры
+                    </div>
+                </div>
+                
+                <div class="rule-card">
+                    <div class="rule-header">
+                        <span class="rule-id">R012</span>
+                        <span class="confidence" style="background: #c53030;">CF: 1.0</span>
+                    </div>
+                    <div class="rule-title">🚨 КРИТИЧЕСКИЕ СИМПТОМЫ</div>
+                    <div class="rule-section">
+                        <div class="rule-label">IF (Условия):</div>
+                        <div class="rule-content">
+                            (одышка = тяжелая OR сатурация_O2 < 92%) OR (температура > 40°C AND не_снижается_жаропонижающими) OR спутанность_сознания = TRUE
+                        </div>
+                    </div>
+                    <div class="rule-section">
+                        <div class="rule-label">THEN (Заключение):</div>
+                        <div class="rule-content">действие = "СРОЧНАЯ госпитализация"</div>
+                    </div>
+                    <div class="recommendation" style="background: #fed7d7; border-color: #c53030;">
+                        <strong>🚨 Рекомендации:</strong> Немедленный вызов скорой помощи, транспортировка в стационар, интенсивная терапия
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ПРОЦЕСС ДИАГНОСТИКИ -->
+        <div id="process" class="tab-content">
+            <div class="diagram-container">
+                <div class="diagram-title">Алгоритм работы системы</div>
+                
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Сбор симптомов пациента</div>
+                    <div class="step-description">
+                        Пользователь вводит данные о симптомах через интерфейс: температура тела, наличие кашля, насморка, болей в горле, длительность симптомов, характер начала заболевания и другие проявления.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Формирование рабочей памяти</div>
+                    <div class="step-description">
+                        Система создает список фактов на основе введенных данных и сохраняет их в рабочей памяти. Например: [температура=39.0, кашель=сухой, насморк=нет, начало=резкое, слабость=сильная]
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Активация правил</div>
+                    <div class="step-description">
+                        Машина вывода проверяет условия всех правил в базе знаний. Правила, условия которых выполняются, добавляются в список активированных правил с их факторами уверенности.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Разрешение конфликтов</div>
+                    <div class="step-description">
+                        Если активировано несколько правил с разными диагнозами, система выбирает наиболее подходящее на основе: 1) Максимального фактора уверенности, 2) Количества совпавших условий, 3) Специфичности диагноза.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <div class="step-title">Вывод заключения</div>
+                    <div class="step-description">
+                        Система формирует диагноз с указанием уверенности (например: "Грипп типа A (85% уверенность)") и определяет список рекомендаций из соответствующего правила.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">6</div>
+                    <div class="step-title">Генерация объяснений</div>
+                    <div class="step-description">
+                        Модуль объяснений создает понятное обоснование диагноза, показывая: какие симптомы учитывались, какие правила сработали, почему выбран именно этот диагноз, а не альтернативные.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">7</div>
+                    <div class="step-title">Формирование рекомендаций</div>
+                    <div class="step-description">
+                        Модуль рекомендаций создает план действий: необходимые медикаменты, режим лечения, когда обращаться к врачу, признаки ухудшения состояния, которые требуют немедленной медицинской помощи.
+                    </div>
+                </div>
+                
+                <div class="process-step">
+                    <div class="step-number">8</div>
+                    <div class="step-title">Вывод результата</div>
+                    <div class="step-description">
+                        Пользователю отображается полный результат диагностики: установленный диагноз, уровень уверенности, обоснование, рекомендации по лечению, предупреждения об опасных симптомах.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- СВЯЗИ МЕЖДУ КЛАССАМИ -->
+        <div id="relations" class="tab-content">
+            <div class="diagram-container">
+                <div class="diagram-title">Отношения между классами онтологии</div>
+                
+                <div class="relations-grid">
+                    <div class="relation-card">
+                        <div class="relation-name">имеет_симптом</div>
+                        <div class="class-name">Заболевание</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Симптом</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">требует_лечения</div>
+                        <div class="class-name">Заболевание</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Лечение</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">может_перейти_в</div>
+                        <div class="class-name">Заболевание</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Осложнение</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">проявляется_у</div>
+                        <div class="class-name">Заболевание</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Пациент</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">сопровождается</div>
+                        <div class="class-name">Симптом</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Симптом</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">противопоказан_при</div>
+                        <div class="class-name">Лечение</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Заболевание</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">эффективен_против</div>
+                        <div class="class-name">Лечение</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Заболевание</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">имеет_риск</div>
+                        <div class="class-name">Пациент</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Осложнение</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">предрасположен_к</div>
+                        <div class="class-name">Пациент</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Заболевание</div>
+                    </div>
+                    
+                    <div class="relation-card">
+                        <div class="relation-name">усиливает</div>
+                        <div class="class-name">Симптом</div>
+                        <div class="relation-arrow">→</div>
+                        <div class="class-name">Симптом</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">Примеры использования связей:</h3>
+                    <ul style="color: #2d3748; line-height: 2;">
+                        <li><strong>Грипп</strong> <em>имеет_симптом</em> → Высокая температура, Ломота в мышцах</li>
+                        <li><strong>ОРВИ</strong> <em>может_перейти_в</em> → Бронхит, Синусит</li>
+                        <li><strong>Ангина</strong> <em>требует_лечения</em> → Антибиотики</li>
+                        <li><strong>Пожилой пациент</strong> <em>имеет_риск</em> → Пневмония</li>
+                        <li><strong>Кашель</strong> <em>сопровождается</em> → Боль в груди</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showTab(tabName) {
+            // Скрыть все табы
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // Убрать активный класс со всех кнопок
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Показать нужный таб
+            document.getElementById(tabName).classList.add('active');
+            
+            // Активировать нужную кнопку
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

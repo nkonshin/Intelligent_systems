@@ -1,0 +1,44 @@
+{
+  "description": "Сценарий #3: Критическое состояние - пневмония с дыхательной недостаточностью",
+  "expected_results": {
+    "diagnosis": ["Риск пневмонии", "КРИТИЧЕСКОЕ СОСТОЯНИЕ"],
+    "rules_fired": ["R005", "R012"]
+  },
+  "facts": [
+    {
+      "type": "Patient",
+      "age": 45,
+      "chronic_diseases": false
+    },
+    {
+      "type": "Symptom",
+      "name": "температура",
+      "value": 39.5
+    },
+    {
+      "type": "Symptom",
+      "name": "длительность_заболевания",
+      "value": 9
+    },
+    {
+      "type": "Symptom",
+      "name": "кашель_с_мокротой",
+      "value": true
+    },
+    {
+      "type": "Symptom",
+      "name": "боль_в_груди",
+      "value": true
+    },
+    {
+      "type": "Symptom",
+      "name": "одышка",
+      "value": "тяжелая"
+    },
+    {
+      "type": "Symptom",
+      "name": "сатурация_O2",
+      "value": 88
+    }
+  ]
+}

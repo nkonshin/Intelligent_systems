@@ -1,0 +1,40 @@
+{
+  "description": "Сценарий #1: Грипп у пожилого пациента с хроническими заболеваниями",
+  "expected_results": {
+    "diagnosis": "Грипп типа A",
+    "risk_level": "высокий",
+    "rules_fired": ["R001", "R008"]
+  },
+  "facts": [
+    {
+      "type": "Patient",
+      "age": 72,
+      "chronic_diseases": true
+    },
+    {
+      "type": "Symptom",
+      "name": "температура",
+      "value": 39.2
+    },
+    {
+      "type": "Symptom",
+      "name": "начало",
+      "value": "резкое"
+    },
+    {
+      "type": "Symptom",
+      "name": "ломота_в_мышцах",
+      "value": "высокая"
+    },
+    {
+      "type": "Symptom",
+      "name": "слабость",
+      "value": "выраженная"
+    },
+    {
+      "type": "Symptom",
+      "name": "головная_боль",
+      "value": "сильная"
+    }
+  ]
+}
