@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Прогнозирование спроса на велопрокат | Защита проекта</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-dark: #0f172a;
+            --bg-medium: #1e293b;
+            --accent-primary: #06b6d4;
+            --accent-secondary: #22c55e;
+            --accent-warning: #f59e0b;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+            --card-bg: #1e293b;
+            --border: rgba(148, 163, 184, 0.15);
+        }
+
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            overflow: hidden;
+        }
+
+        .slide {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 100px;
+            opacity: 0;
+            transition: opacity 0.4s ease-in-out;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .slide-number {
+            position: absolute;
+            top: 30px;
+            right: 50px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .slide-tag {
+            display: inline-block;
+            color: var(--accent-primary);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 30px;
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            font-size: 42px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        p {
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .lead {
+            font-size: 24px;
+            color: var(--text-light);
+            line-height: 1.5;
+            max-width: 900px;
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .author-block {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border);
+        }
+
+        .author-block .label {
+            color: var(--text-muted);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .author-block .name {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
+        .author-block .meta {
+            color: var(--text-muted);
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .card-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+
+        .card h3 {
+            color: var(--accent-primary);
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .stat {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: left;
+        }
+
+        .stat .value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent-primary);
+            line-height: 1;
+        }
+
+        .stat .label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            color: var(--text-light);
+        }
+
+        tr.highlight {
+            background: rgba(6, 182, 212, 0.08);
+        }
+
+        tr.highlight td {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .feature-list li {
+            font-size: 18px;
+            color: var(--text-light);
+            padding: 12px 0 12px 30px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .feature-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+
+        .feature-list li strong {
+            color: var(--accent-secondary);
+        }
+
+        .architecture {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .arch-block {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            text-align: center;
+            min-width: 130px;
+        }
+
+        .arch-block .icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .arch-block .name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .arch-block .desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .arch-arrow {
+            color: var(--accent-primary);
+            font-size: 24px;
+        }
+
+        .screenshot-placeholder {
+            background: var(--card-bg);
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 80px 40px;
+            text-align: center;
+            color: var(--text-muted);
+            margin-top: 20px;
+        }
+
+        .screenshot-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .screenshot-img {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            margin-top: 20px;
+        }
+
+        .nav {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 10px 16px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0.5;
+        }
+
+        .nav-dot.active {
+            background: var(--accent-primary);
+            opacity: 1;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        .nav-dot:hover {
+            opacity: 1;
+        }
+
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            transition: width 0.4s ease-in-out;
+            z-index: 100;
+        }
+
+        .accent-block {
+            background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(34, 197, 94, 0.1));
+            border-left: 4px solid var(--accent-primary);
+            padding: 24px 30px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .accent-block .label {
+            color: var(--accent-primary);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .accent-block .text {
+            font-size: 22px;
+            color: var(--text-light);
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 60px;
+            margin-top: 20px;
+        }
+
+        .column-block h3 {
+            color: var(--accent-primary);
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .pill.green { background: rgba(34, 197, 94, 0.15); color: var(--accent-secondary); }
+        .pill.cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-primary); }
+        .pill.amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-warning); }
+    </style>
+</head>
+<body>
+    <div class="progress" id="progress"></div>
+
+    <!-- СЛАЙД 1: ТИТУЛЬНЫЙ -->
+    <div class="slide active" data-slide="1">
+        <div class="slide-number">01 / 07</div>
+        <div class="slide-tag">Защита проекта · Интеллектуальные системы</div>
+        <h1>Вело Predict — прогнозирование <br>спроса <span class="gradient-text">на велопрокат</span></h1>
+        <p class="lead">Создание системы, которая предсказывает количество арендованных велосипедов в час на основе погодных и календарных факторов, чтобы помочь городским сервисам проката эффективно распределять ресурсы.</p>
+
+        <div class="accent-block" style="margin-top: 30px;">
+            <div class="label">Гуманитарный / социальный аспект</div>
+            <div class="text" style="font-size: 18px;">Повышение доступности и удобства городского велопроката, снижение нагрузки на общественный транспорт, популяризация экологичного транспорта и улучшение пользовательского опыта жителей и туристов.</div>
+        </div>
+
+        <div class="author-block">
+            <div class="label">Команда проекта</div>
+            <div class="name" style="font-size: 22px;">Коньшин Никита · Мельникова Софья · Зырянова Ника · Резепин Антон</div>
+            <div class="meta">ПГНИУ · Факультет ИКНТ · Группа ИТ-34</div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 2: АКТУАЛЬНОСТЬ И ЦЕЛЬ -->
+    <div class="slide" data-slide="2">
+        <div class="slide-number">02 / 07</div>
+        <div class="slide-tag">Актуальность и цель</div>
+        <h2>Зачем это нужно?</h2>
+
+        <div class="accent-block">
+            <div class="label">Проблема</div>
+            <div class="text">Системы велопроката страдают от дисбаланса велосипедов: утром велосипеды "уезжают" из жилых районов в деловые, вечером — обратно. Без прогноза спроса оператор реагирует постфактум.</div>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-icon">🎯</div>
+                <h3>Целевые пользователи</h3>
+                <p>Операторы велопроката (планирование перераспределения), городские транспортные департаменты (развитие инфраструктуры), аналитики урбанистических данных.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">💡</div>
+                <h3>Цель проекта</h3>
+                <p>Разработать инструмент для точного прогнозирования почасового спроса на основе погодных условий, времени года и календарных данных.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">📈</div>
+                <h3>Практический результат</h3>
+                <p>Заранее перераспределять велосипеды по станциям, не дожидаясь возникновения пиковых нагрузок и дефицита.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 3: ДАННЫЕ -->
+    <div class="slide" data-slide="3">
+        <div class="slide-number">03 / 07</div>
+        <div class="slide-tag">Данные</div>
+        <h2>UCI Bike Sharing Dataset</h2>
+        <p class="lead">Реальные данные системы Capital Bikeshare (Вашингтон, США), обогащённые метеорологическими данными за 2011-2012 годы.</p>
+
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="value">17 379</div>
+                <div class="label">Записей (по часам)</div>
+            </div>
+            <div class="stat">
+                <div class="value">12</div>
+                <div class="label">Признаков</div>
+            </div>
+            <div class="stat">
+                <div class="value">2 года</div>
+                <div class="label">Период наблюдений</div>
+            </div>
+            <div class="stat">
+                <div class="value">0</div>
+                <div class="label">Пропусков в данных</div>
+            </div>
+        </div>
+
+        <div class="two-column" style="margin-top: 40px;">
+            <div class="column-block">
+                <h3>Категориальные (8)</h3>
+                <p style="font-size: 16px;">
+                    <span class="pill cyan">season</span> <span class="pill cyan">yr</span>
+                    <span class="pill cyan">mnth</span> <span class="pill cyan">hr</span>
+                    <span class="pill cyan">holiday</span> <span class="pill cyan">weekday</span>
+                    <span class="pill cyan">workingday</span> <span class="pill cyan">weathersit</span>
+                </p>
+            </div>
+            <div class="column-block">
+                <h3>Числовые (4)</h3>
+                <p style="font-size: 16px;">
+                    <span class="pill green">temp</span> <span class="pill green">atemp</span>
+                    <span class="pill green">hum</span> <span class="pill green">windspeed</span>
+                </p>
+            </div>
+        </div>
+
+        <p style="margin-top: 30px; font-size: 17px;">
+            <strong style="color: var(--accent-warning);">Целевая переменная:</strong>
+            <code style="background: var(--card-bg); padding: 4px 10px; border-radius: 6px; color: var(--accent-secondary);">cnt</code>
+            — количество прокатов за час (1-977, среднее 189)
+        </p>
+    </div>
+
+    <!-- СЛАЙД 4: МЕТОД И МОДЕЛЬ -->
+    <div class="slide" data-slide="4">
+        <div class="slide-number">04 / 07</div>
+        <div class="slide-tag">Метод и модель</div>
+        <h2>Сравнили три принципиально разных подхода</h2>
+
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-icon">📏</div>
+                <h3>Baseline</h3>
+                <p style="margin-bottom: 12px;"><strong style="color: var(--text-light);">Своя реализация.</strong> Простое правило на одном признаке: предсказание = среднее за этот час суток.</p>
+                <span class="pill amber">Точка отсчёта</span>
+            </div>
+            <div class="card">
+                <div class="card-icon">🌲</div>
+                <h3>RandomForest</h3>
+                <p style="margin-bottom: 12px;"><strong style="color: var(--text-light);">Bagging.</strong> Ансамбль из 200 независимых деревьев, обученных параллельно на случайных подвыборках.</p>
+                <span class="pill green">Победитель</span>
+            </div>
+            <div class="card">
+                <div class="card-icon">⚡</div>
+                <h3>GradientBoosting</h3>
+                <p style="margin-bottom: 12px;"><strong style="color: var(--text-light);">Boosting.</strong> 200 последовательных деревьев, каждое исправляет ошибки предыдущего.</p>
+                <span class="pill cyan">Альтернатива</span>
+            </div>
+        </div>
+
+        <div class="accent-block" style="margin-top: 40px;">
+            <div class="label">Pipeline</div>
+            <div class="text" style="font-size: 18px;">
+                ColumnTransformer (OneHotEncoder для категорий + StandardScaler для чисел) → RandomForestRegressor.
+                Модель и предобработка сохраняются в одном <code style="color: var(--accent-secondary);">.pkl</code> файле.
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 5: РЕЗУЛЬТАТЫ -->
+    <div class="slide" data-slide="5">
+        <div class="slide-number">05 / 07</div>
+        <div class="slide-tag">Результаты</div>
+        <h2>Качество модели</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Модель</th>
+                    <th>MAE</th>
+                    <th>RMSE</th>
+                    <th>R²</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Baseline (среднее за час)</td>
+                    <td>87.34</td>
+                    <td>126.83</td>
+                    <td>0.4920</td>
+                </tr>
+                <tr class="highlight">
+                    <td>RandomForest ★</td>
+                    <td>32.67</td>
+                    <td>51.48</td>
+                    <td>0.9163</td>
+                </tr>
+                <tr>
+                    <td>GradientBoosting</td>
+                    <td>34.86</td>
+                    <td>51.92</td>
+                    <td>0.9149</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="grid-2" style="margin-top: 40px;">
+            <div class="card">
+                <div class="card-icon">✅</div>
+                <h3 style="color: var(--accent-secondary);">Что получилось хорошо</h3>
+                <p>R² = 0.916 — модель объясняет <strong style="color: var(--text-light);">91.6% дисперсии</strong>. Корректно улавливает сезонность и суточные паттерны (утренние и вечерние часы пик), реагирует на погодные изменения. Сложные модели работают <strong style="color: var(--text-light);">в 2.7 раза точнее</strong> baseline.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">⚠️</div>
+                <h3 style="color: var(--accent-warning);">Главные трудности</h3>
+                <p>Нелинейные зависимости (влияние температуры не монотонное), наибольшие ошибки в часы пик 17-19 ч — средняя ошибка <strong style="color: var(--text-light);">50-60 прокатов</strong>. Причина — волатильность спроса из-за факторов, которых нет в данных (мероприятия, аварии).</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 6: РАБОЧИЙ ПРОТОТИП -->
+    <div class="slide" data-slide="6">
+        <div class="slide-number">06 / 07</div>
+        <div class="slide-tag">Рабочий прототип</div>
+        <h2>Веб-интерфейс на Gradio</h2>
+
+        <div class="grid-2" style="grid-template-columns: 1.3fr 1fr; gap: 40px; margin-top: 20px;">
+            <div>
+                <img src="screenshot.png" alt="Скриншот Gradio-интерфейса" class="screenshot-img">
+                <p style="font-size: 14px; margin-top: 12px; color: var(--text-muted);">Веб-интерфейс на Gradio: пользователь вводит параметры (час, погода, день недели) и получает прогноз спроса.</p>
+            </div>
+            <div>
+                <h3 style="color: var(--accent-primary); font-size: 18px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">Архитектура</h3>
+                <div class="architecture" style="flex-direction: column; align-items: stretch; gap: 12px;">
+                    <div class="arch-block">
+                        <div class="icon">📊</div>
+                        <div class="name">train.py</div>
+                        <div class="desc">Обучение на CSV</div>
+                    </div>
+                    <div style="text-align: center;" class="arch-arrow">↓</div>
+                    <div class="arch-block">
+                        <div class="icon">💾</div>
+                        <div class="name">best_model.pkl</div>
+                        <div class="desc">Сохранённая модель</div>
+                    </div>
+                    <div style="text-align: center;" class="arch-arrow">↓</div>
+                    <div class="arch-block">
+                        <div class="icon">🔮</div>
+                        <div class="name">predict.py</div>
+                        <div class="desc">Функция предсказания</div>
+                    </div>
+                    <div style="text-align: center;" class="arch-arrow">↓</div>
+                    <div class="arch-block">
+                        <div class="icon">🌐</div>
+                        <div class="name">app.py (Gradio)</div>
+                        <div class="desc">Веб-интерфейс</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- СЛАЙД 7: ВЫВОДЫ -->
+    <div class="slide" data-slide="7">
+        <div class="slide-number">07 / 07</div>
+        <div class="slide-tag">Выводы и развитие</div>
+        <h2>Чего достигли</h2>
+
+        <div class="grid-2" style="grid-template-columns: 0.9fr 1.1fr; gap: 40px; margin-top: 10px;">
+            <div>
+                <div class="stats-grid" style="grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 0;">
+                    <div class="stat">
+                        <div class="value">R² = 0.92</div>
+                        <div class="label">Качество модели</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">MAE = 33</div>
+                        <div class="label">Средняя ошибка (прокатов)</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">3 / 3</div>
+                        <div class="label">Тестов проходят</div>
+                    </div>
+                    <div class="stat">
+                        <div class="value">×2.7</div>
+                        <div class="label">Точнее baseline</div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 style="color: var(--accent-secondary); font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">Ключевые результаты</h3>
+                <ul class="feature-list" style="margin-top: 0;">
+                    <li style="font-size: 16px; padding: 8px 0 8px 24px;">Сравнили <strong>3 модели</strong> (Baseline, RandomForest, GradientBoosting) и обоснованно выбрали лучшую</li>
+                    <li style="font-size: 16px; padding: 8px 0 8px 24px;">Реализован <strong>полный ML-конвейер</strong>: предобработка → обучение → сохранение → инференс</li>
+                    <li style="font-size: 16px; padding: 8px 0 8px 24px;">Создан <strong>рабочий веб-прототип</strong> на Gradio с человекочитаемым интерфейсом</li>
+                    <li style="font-size: 16px; padding: 8px 0 8px 24px;">Покрытие <strong>автотестами</strong>: проверка функции предсказания, формата ответа, запуска интерфейса</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3 style="margin-top: 30px; color: var(--accent-primary); font-size: 16px; text-transform: uppercase; letter-spacing: 1px;">Что можно улучшить</h3>
+        <ul class="feature-list" style="margin-top: 8px;">
+            <li style="font-size: 16px; padding: 6px 0 6px 24px;">Прогноз для <strong>конкретных станций</strong>, а не по городу в целом</li>
+            <li style="font-size: 16px; padding: 6px 0 6px 24px;">Интегрировать <strong>реальный API погоды</strong> для автоматического прогноза на завтра</li>
+            <li style="font-size: 16px; padding: 6px 0 6px 24px;">Добавить <strong>визуализацию</strong>: график спроса по часам или тепловую карту</li>
+            <li style="font-size: 16px; padding: 6px 0 6px 24px;">Развернуть в облаке (<strong>Hugging Face Spaces</strong>) для публичного доступа</li>
+        </ul>
+
+        <div class="accent-block" style="margin-top: 20px; padding: 16px 24px;">
+            <div class="label">Спасибо за внимание</div>
+            <div class="text" style="font-size: 18px;">Готовы ответить на ваши вопросы</div>
+        </div>
+    </div>
+
+    <!-- НАВИГАЦИЯ -->
+    <div class="nav" id="nav"></div>
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()">←</button>
+        <button class="nav-btn" onclick="nextSlide()">→</button>
+    </div>
+
+    <script>
+        const totalSlides = 7;
+        let currentSlide = 1;
+
+        // Создаём точки навигации
+        const navContainer = document.getElementById('nav');
+        for (let i = 1; i <= totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'nav-dot' + (i === 1 ? ' active' : '');
+            dot.onclick = () => goToSlide(i);
+            navContainer.appendChild(dot);
+        }
+
+        function updateProgress() {
+            const progress = (currentSlide / totalSlides) * 100;
+            document.getElementById('progress').style.width = progress + '%';
+        }
+
+        function goToSlide(num) {
+            if (num < 1 || num > totalSlides) return;
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-dot').forEach(d => d.classList.remove('active'));
+            document.querySelector(`.slide[data-slide="${num}"]`).classList.add('active');
+            document.querySelectorAll('.nav-dot')[num - 1].classList.add('active');
+            currentSlide = num;
+            updateProgress();
+        }
+
+        function nextSlide() { goToSlide(currentSlide + 1); }
+        function prevSlide() { goToSlide(currentSlide - 1); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'Home') {
+                goToSlide(1);
+            } else if (e.key === 'End') {
+                goToSlide(totalSlides);
+            } else if (e.key >= '1' && e.key <= '7') {
+                goToSlide(parseInt(e.key));
+            }
+        });
+
+        updateProgress();
+    </script>
+</body>
+</html>

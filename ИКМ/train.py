@@ -11,12 +11,35 @@ import joblib
 import os
 from pathlib import Path
 
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.model_selection import train_test_split, cross_val_score, KFold
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+
+# ─────────────────────────────────────────────────────────────────
+# СОБСТВЕННАЯ РЕАЛИЗАЦИЯ ПРОСТОЙ МОДЕЛИ (baseline)
+# ─────────────────────────────────────────────────────────────────
+# Простое правило на одном признаке: предсказываем среднее количество
+# прокатов за конкретный час суток. Игнорируем все остальные признаки.
+# Это базовая модель — сложные алгоритмы должны работать лучше неё.
+
+class HourlyMeanRegressor(BaseEstimator, RegressorMixin):
+    """Базовая модель: предсказание = среднее количество прокатов за этот час."""
+
+    def fit(self, X, y):
+        # Считаем среднее значение y для каждого часа (0-23)
+        df = pd.DataFrame({"hr": X["hr"].values, "y": y.values if hasattr(y, "values") else y})
+        self.hour_means_ = df.groupby("hr")["y"].mean().to_dict()
+        self.global_mean_ = df["y"].mean()  # запасной вариант
+        return self
+
+    def predict(self, X):
+        # Для каждой строки берём среднее за её час
+        return np.array([self.hour_means_.get(h, self.global_mean_) for h in X["hr"].values])
 
 # ─────────────────────────────────────────────────────────────────
 # 1. ЗАГРУЗКА И ПОДГОТОВКА ДАННЫХ
@@ -78,10 +101,13 @@ print("\n" + "=" * 60)
 print("2. ОБУЧЕНИЕ И КРОСС-ВАЛИДАЦИЯ")
 print("=" * 60)
 
-# Два принципиально разных алгоритма:
-#   RandomForest — ансамбль независимых деревьев (bagging)
-#   GradientBoosting — последовательный ансамбль (boosting)
+# Принципиально разные подходы:
+#   1. Baseline (своя реализация) — простое правило на одном признаке (среднее за час)
+#   2. RandomForest — ансамбль независимых деревьев (bagging)
+#   3. GradientBoosting — последовательный ансамбль (boosting)
+# Baseline нужен, чтобы понимать "стартовую планку" — насколько лучше работают сложные модели
 pipelines = {
+    "Baseline (среднее за час)": HourlyMeanRegressor(),
     "RandomForest": Pipeline([
         ("prep", preprocessor),
         ("model", RandomForestRegressor(n_estimators=200, random_state=42, n_jobs=-1))
@@ -225,18 +251,21 @@ print("\n" + "=" * 60)
 print("ИТОГОВЫЙ ОТЧЁТ")
 print("=" * 60)
 
-print(f"\nЛучшая модель: {best_name}")
-print(f"  MAE на тесте:  {test_results[best_name]['mae']:.2f} прокатов")
-print(f"  RMSE на тесте: {test_results[best_name]['rmse']:.2f} прокатов")
-print(f"  R2 на тесте:   {test_results[best_name]['r2']:.4f}")
-print(f"  → Модель объясняет {test_results[best_name]['r2'] * 100:.1f}% дисперсии спроса")
-
 # Анализ ошибок: где модель ошибается больше всего
 y_pred_all = best_pipe.predict(X_test)
 errors = np.abs(y_test.values - y_pred_all)
 error_by_hour = pd.DataFrame({"hr": X_test["hr"].values, "error": errors})
 worst_hours = error_by_hour.groupby("hr")["error"].mean().nlargest(3)
-print(f"\n  Часы с наибольшими ошибками:")
+worst_hours_str = ", ".join(f"{hr}:00" for hr in worst_hours.index.tolist())
+
+# Краткий отчёт в формате из задания:
+print(f"\n  Лучшая модель — {best_name}.")
+print(f"  Её ключевая метрика на новых данных — MAE = {test_results[best_name]['mae']:.2f} прокатов")
+print(f"  (RMSE = {test_results[best_name]['rmse']:.2f}, R2 = {test_results[best_name]['r2']:.4f}).")
+print(f"  Чаще всего она ошибается в часы пик: {worst_hours_str}")
+print(f"  → Модель объясняет {test_results[best_name]['r2'] * 100:.1f}% дисперсии спроса")
+
+print(f"\n  Часы с наибольшими ошибками (детально):")
 for hr, err in worst_hours.items():
     print(f"    {hr}:00 — средняя ошибка {err:.0f} прокатов")
 
